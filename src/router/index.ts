@@ -1,39 +1,26 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router';
-import { RouteRecordRaw } from 'vue-router';
-import TabsPage from '../views/TabsPage.vue'
+import type { RouteRecordRaw } from 'vue-router';
+import { isAuthenticated } from '@/services/auth';
 
 const routes: Array<RouteRecordRaw> = [
-  {
-    path: '/',
-    redirect: '/tabs/tab1'
-  },
-  {
-    path: '/tabs/',
-    component: TabsPage,
-    children: [
-      {
-        path: '',
-        redirect: '/tabs/tab1'
-      },
-      {
-        path: 'tab1',
-        component: () => import('@/views/Tab1Page.vue')
-      },
-      {
-        path: 'tab2',
-        component: () => import('@/views/Tab2Page.vue')
-      },
-      {
-        path: 'tab3',
-        component: () => import('@/views/Tab3Page.vue')
-      }
-    ]
-  }
-]
+  { path: '/', redirect: '/login' },
+  { path: '/login', component: () => import('@/views/LoginPage.vue'), meta: { public: true } },
+  { path: '/cadastro', component: () => import('@/views/RegisterPage.vue'), meta: { public: true } },
+  { path: '/home', component: () => import('@/views/HomePage.vue') },
+  { path: '/sobre', component: () => import('@/views/AboutPage.vue') },
+  { path: '/termos/:tipo', component: () => import('@/views/TermsPage.vue') },
+  { path: '/:pathMatch(.*)*', redirect: '/login' }
+];
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes
-})
+});
 
-export default router
+router.beforeEach((to) => {
+  if (!to.meta.public && !isAuthenticated()) return '/login';
+  if (to.meta.public && isAuthenticated()) return '/home';
+  return true;
+});
+
+export default router;
