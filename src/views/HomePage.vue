@@ -13,16 +13,17 @@
 <script setup lang="ts">
 import { ref } from 'vue'; import { useRouter } from 'vue-router';
 import { Camera, MediaTypeSelection } from '@capacitor/camera';
-import { IonButton, IonButtons, IonContent, IonFab, IonFabButton, IonFabList, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar, toastController } from '@ionic/vue';
+import { alertController, IonButton, IonButtons, IonContent, IonFab, IonFabButton, IonFabList, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar, toastController } from '@ionic/vue';
 import { add, cameraOutline, imagesOutline, informationCircleOutline, logOutOutline, trashOutline } from 'ionicons/icons';
 import { currentUserName, logout } from '@/services/auth';
 type GalleryPhoto = { id: string; url: string }; const router = useRouter(); const userName = currentUserName(); const photos = ref<GalleryPhoto[]>([]);
 function addPhoto(url?: string) { if (url) photos.value.unshift({ id: crypto.randomUUID(), url }); }
-async function takePhoto() { try { const permission = await Camera.requestPermissions({ permissions: ['camera'] }); if (permission.camera !== 'granted') return notify('Permissão da câmera negada.', 'danger'); const photo = await Camera.takePhoto({ quality: 85, targetWidth: 1400, correctOrientation: true }); addPhoto(photo.webPath); } catch (error) { if (!String(error).toLowerCase().includes('cancel')) notify('Não foi possível tirar a foto.', 'danger'); } }
-async function chooseFromGallery() { try { const permission = await Camera.requestPermissions({ permissions: ['photos'] }); if (permission.photos !== 'granted' && permission.photos !== 'limited') return notify('Permissão para fotos negada.', 'danger'); const result = await Camera.chooseFromGallery({ mediaType: MediaTypeSelection.Photo, allowMultipleSelection: true, quality: 85, targetWidth: 1400 }); result.results.forEach((photo) => addPhoto(photo.webPath)); } catch (error) { if (!String(error).toLowerCase().includes('cancel')) notify('Não foi possível abrir a galeria.', 'danger'); } }
+async function takePhoto() { if (!await confirmPermission('Permitir acesso à câmera?', 'A câmera será usada somente para adicionar uma foto à sua galeria.')) return; try { const permission = await Camera.requestPermissions({ permissions: ['camera'] }); if (permission.camera !== 'granted') return notify('Permissão da câmera negada.', 'danger'); const photo = await Camera.takePhoto({ quality: 85, targetWidth: 1400, correctOrientation: true }); addPhoto(photo.webPath); } catch (error) { if (!String(error).toLowerCase().includes('cancel')) notify('Não foi possível tirar a foto.', 'danger'); } }
+async function chooseFromGallery() { if (!await confirmPermission('Permitir acesso às fotos?', 'O acesso será usado somente para escolher imagens para sua galeria.')) return; try { const permission = await Camera.requestPermissions({ permissions: ['photos'] }); if (permission.photos !== 'granted' && permission.photos !== 'limited') return notify('Permissão para fotos negada.', 'danger'); const result = await Camera.chooseFromGallery({ mediaType: MediaTypeSelection.Photo, allowMultipleSelection: true, quality: 85, targetWidth: 1400 }); result.results.forEach((photo) => addPhoto(photo.webPath)); } catch (error) { if (!String(error).toLowerCase().includes('cancel')) notify('Não foi possível abrir a galeria.', 'danger'); } }
 function remove(id: string) { photos.value = photos.value.filter((photo) => photo.id !== id); }
 function signOut() { logout(); router.replace('/login'); }
 async function notify(message: string, color: string) { const toast = await toastController.create({ message, color, duration: 2200, position: 'bottom' }); await toast.present(); }
+async function confirmPermission(header: string, message: string): Promise<boolean> { const alert = await alertController.create({ header, message, buttons: [{ text: 'Agora não', role: 'cancel' }, { text: 'Continuar', role: 'confirm' }] }); await alert.present(); const result = await alert.onDidDismiss(); return result.role === 'confirm'; }
 </script>
 
 <style scoped>
